@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الأعمال (Mini ERP)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Ionicons for beautiful lightweight icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <!-- Chart.js for Dashboard (Requested as optional but highly valued) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="light-mode">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon"><ion-icon name="business-outline"></ion-icon></div>
+                <h2>إدارة بلس</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active" data-target="dashboard"><ion-icon name="grid-outline"></ion-icon> لوحة التحكم</a>
+                <a href="#" class="nav-link" data-target="invoices"><ion-icon name="document-text-outline"></ion-icon> الفواتير</a>
+                <a href="#" class="nav-link" data-target="customers"><ion-icon name="people-outline"></ion-icon> العملاء</a>
+                <a href="#" class="nav-link" data-target="inventory"><ion-icon name="cube-outline"></ion-icon> المخزون</a>
+                <a href="#" class="nav-link" data-target="expenses"><ion-icon name="cash-outline"></ion-icon> المصاريف</a>
+                <a href="#" class="nav-link" data-target="settings"><ion-icon name="settings-outline"></ion-icon> الإعدادات</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="themeToggle" class="theme-btn">
+                    <ion-icon name="moon-outline" id="themeIcon"></ion-icon> الوضع الليلي
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="search-bar">
+                    <ion-icon name="search-outline"></ion-icon>
+                    <input type="text" placeholder="بحث سريع...">
+                </div>
+                <div class="user-profile">
+                    <span class="user-name">المدير العام</span>
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=10b981&color=fff" alt="User" class="avatar">
+                </div>
+            </header>
+
+            <!-- Custom Alert Container -->
+            <div id="alertContainer" class="alert-container"></div>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="page-section active">
+                <div class="section-header">
+                    <h1>لوحة التحكم</h1>
+                    <button class="btn btn-primary" onclick="exportData()"><ion-icon name="download-outline"></ion-icon> تصدير CSV</button>
+                </div>
+                
+                <div class="cards-grid">
+                    <div class="stat-card">
+                        <div class="card-icon success"><ion-icon name="trending-up-outline"></ion-icon></div>
+                        <div class="card-info">
+                            <h3>إجمالي الإيرادات</h3>
+                            <p class="value" id="totalRevenue">0 د.ج</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon danger"><ion-icon name="trending-down-outline"></ion-icon></div>
+                        <div class="card-info">
+                            <h3>إجمالي المصاريف</h3>
+                            <p class="value" id="totalExpenses">0 د.ج</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon primary"><ion-icon name="wallet-outline"></ion-icon></div>
+                        <div class="card-info">
+                            <h3>صافي الربح</h3>
+                            <p class="value" id="netProfit">0 د.ج</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="card-icon warning"><ion-icon name="document-text-outline"></ion-icon></div>
+                        <div class="card-info">
+                            <h3>إجمالي الفواتير</h3>
+                            <p class="value" id="invoiceCount">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3>نظرة عامة على الإيرادات والمصاريف</h3>
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                    <div class="smart-insights">
+                        <h3>إحصائيات ذكية 💡</h3>
+                        <div class="insight-box">
+                            <span class="insight-title">أفضل منتج مبيعاً</span>
+                            <span class="insight-value" id="topProduct">لا توجد بيانات</span>
+                        </div>
+                        <div class="insight-box">
+                            <span class="insight-title">أفضل عميل</span>
+                            <span class="insight-value" id="topCustomer">لا توجد بيانات</span>
+                        </div>
+                        <div class="insight-box">
+                            <span class="insight-title">منتجات منخفضة المخزون</span>
+                            <span class="insight-value danger-text" id="lowStockCount">0 منتج</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Invoices Section -->
+            <section id="invoices" class="page-section">
+                <div class="section-header">
+                    <h1>الفواتير</h1>
+                    <button class="btn btn-primary" id="openInvoiceModal"><ion-icon name="add-outline"></ion-icon> فاتورة جديدة</button>
+                </div>
+                <div class="table-container glass-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>العميل</th>
+                                <th>التاريخ</th>
+                                <th>المبلغ (د.ج)</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTableBody">
+                            <!-- Data injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Customers Section -->
+            <section id="customers" class="page-section">
+                <div class="section-header">
+                    <h1>العملاء</h1>
+                    <button class="btn btn-primary" id="openCustomerModal"><ion-icon name="add-outline"></ion-icon> إضافة عميل</button>
+                </div>
+                <div class="table-container glass-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>اسم العميل</th>
+                                <th>رقم الهاتف</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>إجمالي المشتريات</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customersTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory" class="page-section">
+                <div class="section-header">
+                    <h1>المخزون</h1>
+                    <button class="btn btn-primary" id="openProductModal"><ion-icon name="add-outline"></ion-icon> إضافة منتج</button>
+                </div>
+                <div class="table-container glass-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>اسم المنتج</th>
+                                <th>السعر (د.ج)</th>
+                                <th>الكمية المتوفرة</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="page-section">
+                <div class="section-header">
+                    <h1>المصاريف</h1>
+                    <button class="btn btn-primary" id="openExpenseModal"><ion-icon name="add-outline"></ion-icon> إضافة مصروف</button>
+                </div>
+                <div class="table-container glass-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>السبب/الوصف</th>
+                                <th>التصنيف</th>
+                                <th>التاريخ</th>
+                                <th>المبلغ (د.ج)</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expensesTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="page-section">
+                <div class="section-header">
+                    <h1>الإعدادات</h1>
+                </div>
+                <div class="settings-grid">
+                    <div class="glass-card settings-card">
+                        <h3>إعدادات عامة</h3>
+                        <div class="form-group">
+                            <label>اللغة</label>
+                            <select id="langSelect" class="form-control">
+                                <option value="ar">العربية (الجزائر)</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>العملة</label>
+                            <select id="currencySelect" class="form-control" disabled>
+                                <option value="DZD">الدينار الجزائري (DZD)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="glass-card settings-card">
+                        <h3>إدارة البيانات</h3>
+                        <p class="text-muted">يتم حفظ جميع البيانات محلياً في متصفحك.</p>
+                        <button class="btn btn-danger mt-3" onclick="clearAllData()"><ion-icon name="trash-outline"></ion-icon> مسح جميع البيانات</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Add Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>إضافة منتج جديد</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="productForm">
+                <div class="form-group">
+                    <label>اسم المنتج *</label>
+                    <input type="text" id="prodName" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>السعر (د.ج) *</label>
+                    <input type="number" id="prodPrice" required min="0" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>الكمية *</label>
+                    <input type="number" id="prodQty" required min="0" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ المنتج</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Customer Modal -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>إضافة عميل جديد</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="customerForm">
+                <div class="form-group">
+                    <label>اسم العميل *</label>
+                    <input type="text" id="custName" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="tel" id="custPhone" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" id="custEmail" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ العميل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Expense Modal -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>إضافة مصروف جديد</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="expenseForm">
+                <div class="form-group">
+                    <label>السبب / الوصف *</label>
+                    <input type="text" id="expDesc" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>التصنيف *</label>
+                    <select id="expCategory" required class="form-control">
+                        <option value="إيجار">إيجار</option>
+                        <option value="رواتب">رواتب</option>
+                        <option value="مشتريات">مشتريات</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>المبلغ (د.ج) *</label>
+                    <input type="number" id="expAmount" required min="0" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ المصروف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Invoice Modal -->
+    <div id="invoiceModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2>إنشاء فاتورة جديدة</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="invoiceForm">
+                <div class="form-group">
+                    <label>العميل *</label>
+                    <select id="invCustomer" required class="form-control">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="invoice-items-section">
+                    <h3>المنتجات</h3>
+                    <div id="invItemsList" class="mb-3">
+                        <!-- Items go here -->
+                    </div>
+                    <div class="add-item-row">
+                        <select id="invProductSelect" class="form-control">
+                            <!-- Populated by JS -->
+                        </select>
+                        <input type="number" id="invProductQty" min="1" value="1" class="form-control" style="width: 100px;">
+                        <button type="button" id="addInvItemBtn" class="btn btn-secondary">إضافة للقائمة</button>
+                    </div>
+                </div>
+
+                <div class="invoice-total-section mt-3">
+                    <h3>الإجمالي: <span id="invTotalCalc">0</span> د.ج</h3>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ الفاتورة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
